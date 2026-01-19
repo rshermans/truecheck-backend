@@ -1,0 +1,52 @@
+{
+  "google_api": {
+    "enabled": true,
+    "languages": [
+      "pt",
+      "en",
+      "es"
+    ],
+    "stats": {
+      "last_run": "2026-01-18T16:34:25.344257",
+      "last_count": 31,
+      "total_count": 71
+    },
+    "type": "GoogleFactCheckSource"
+  },
+  "poligrafo_scraper": {
+    "enabled": true,
+    "languages": [
+      "pt"
+    ],
+    "stats": {
+      "last_run": "2026-01-18T16:34:38.708354",
+      "last_count": 0,
+      "total_count": 0
+    },
+    "type": "ClaimReviewScraperSource"
+  },
+  "observador_scraper": {
+    "enabled": true,
+    "languages": [
+      "pt"
+    ],
+    "stats": {
+      "last_run": "2026-01-18T16:34:48.940375",
+      "last_count": 0,
+      "total_count": 0
+    },
+    "type": "ClaimReviewScraperSource"
+  },
+  "poligrafo_rss": {
+    "enabled": true,
+    "languages": [
+      "pt"
+    ],
+    "stats": {
+      "last_run": null,
+      "last_count": 0,
+      "total_count": 0
+    },
+    "type": "RSSFeedSource"
+  }
+}
