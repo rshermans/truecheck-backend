@@ -258,6 +258,46 @@ async def list_materials(
     materials = session.exec(select(Material).order_by(Material.created_at.desc())).all()
     return materials
 
+@router.put("/materials/{material_id}")
+async def update_material(
+    material_id: int,
+    material_data: MaterialCreate,
+    user: dict = Depends(verify_staff),
+    session: Session = Depends(get_session)
+):
+    """Update an existing material"""
+    material = session.get(Material, material_id)
+    if not material:
+        raise HTTPException(status_code=404, detail="Material não encontrado")
+    
+    # Update fields
+    material.title = material_data.title
+    material.type = material_data.type
+    material.url = material_data.url
+    material.description = material_data.description
+    if material_data.file_size:
+        material.file_size = material_data.file_size
+    
+    session.add(material)
+    session.commit()
+    session.refresh(material)
+    return material
+
+@router.delete("/materials/{material_id}")
+async def delete_material(
+    material_id: int,
+    user: dict = Depends(verify_staff),
+    session: Session = Depends(get_session)
+):
+    """Delete a material"""
+    material = session.get(Material, material_id)
+    if not material:
+        raise HTTPException(status_code=404, detail="Material não encontrado")
+    
+    session.delete(material)
+    session.commit()
+    return {"message": "Material eliminado com sucesso"}
+
 # --- Challenge Management ---
 class ChallengeCreate(BaseModel):
     title: str

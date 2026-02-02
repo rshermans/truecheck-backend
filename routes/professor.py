@@ -4,41 +4,126 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 
-from models.database import User, AnalysisResult
+from models.database import User, AnalysisResult, Classroom
 from routes.auth import verify_token
 from database import get_session
+import uuid
 
 router = APIRouter(prefix="/api/professor", tags=["professor"])
+
+class ClassroomCreate(BaseModel):
+    name: str
+    school: str
+    description: Optional[str] = None
+    theme_color: str = "blue"
+
+@router.post("/classes")
+async def create_classroom(
+    data: ClassroomCreate,
+    token_data: dict = Depends(verify_token),
+    session: Session = Depends(get_session)
+):
+    """Create a new real Classroom entity"""
+    user = session.get(User, token_data["user_id"])
+    if not user or user.role not in ["professor", "admin"]:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Generate unique invite code
+    code = str(uuid.uuid4())[:6].upper()
+    while session.exec(select(Classroom).where(Classroom.invite_code == code)).first():
+        code = str(uuid.uuid4())[:6].upper()
+        
+    classroom = Classroom(
+        name=data.name,
+        school=data.school,
+        description=data.description,
+        theme_color=data.theme_color,
+        invite_code=code,
+        professor_id=user.id
+    )
+    session.add(classroom)
+    session.commit()
+    session.refresh(classroom)
+    return classroom
+
+@router.delete("/classes/{class_id}")
+async def delete_classroom(
+    class_id: int,
+    token_data: dict = Depends(verify_token),
+    session: Session = Depends(get_session)
+):
+    """Delete a classroom entity"""
+    user = session.get(User, token_data["user_id"])
+    classroom = session.get(Classroom, class_id)
+    if not classroom:
+         raise HTTPException(status_code=404, detail="Turma não encontrada")
+         
+    if classroom.professor_id != user.id and user.role != "admin":
+         raise HTTPException(status_code=403, detail="Não tem permissão")
+         
+    # Review: Should we delete students or just unassign?
+    # Unassign for safety
+    for student in classroom.students:
+        student.classroom_id = None
+        session.add(student)
+        
+    session.delete(classroom)
+    session.commit()
+    return {"message": "Turma eliminada"}
+
 
 @router.get("/my-classes")
 async def get_my_classes(
     token_data: dict = Depends(verify_token),
     session: Session = Depends(get_session)
 ):
-    """Get classes managed by the professor"""
+    """Get classes managed by the professor (Hybrid: Legacy + Real Entities)"""
     # Verify user is professor or admin
     user = session.get(User, token_data["user_id"])
     if not user or user.role not in ["professor", "admin"]:
         raise HTTPException(status_code=403, detail="Acesso negado. Apenas professores podem acessar.")
     
-    # Get unique classes from students
-    # For now, we'll group by class_name and school
+    # 1. Legacy Classes (grouped from users without classroom_id)
     statement = (
         select(User.school, User.class_name, func.count(User.id).label("student_count"))
         .where(User.role == "user")
         .where(User.class_name.isnot(None))
+        .where(User.classroom_id.is_(None)) # Only users not in a real classroom
         .group_by(User.school, User.class_name)
     )
     
-    results = session.exec(statement).all()
+    legacy_results = session.exec(statement).all()
     
     classes = []
-    for school, class_name, student_count in results:
+    
+    # 2. Active Classrooms (Real entities)
+    active_classrooms = session.exec(
+        select(Classroom).where(Classroom.professor_id == user.id)
+    ).all()
+    
+    for c in active_classrooms:
+        # Count students manually or optmize with subquery
+        count = len(c.students)
+        classes.append({
+            "id": c.id, # Real ID (int)
+            "school": c.school,
+            "class_name": c.name,
+            "description": c.description,
+            "invite_code": c.invite_code,
+            "theme_color": c.theme_color,
+            "student_count": count,
+            "is_legacy": False
+        })
+    
+    # Add legacy
+    for school, class_name, student_count in legacy_results:
         classes.append({
             "school": school or "Sem escola",
             "class_name": class_name,
             "student_count": student_count,
-            "id": f"{school}_{class_name}"  # Composite ID
+            "id": f"legacy_{school}_{class_name}",  # String ID
+            "is_legacy": True,
+            "theme_color": "gray"
         })
     
     return {"classes": classes}
@@ -244,6 +329,40 @@ async def get_student_details(
         },
         "recent_analyses": recent_analyses
     }
+
+@router.delete("/students/{student_id}")
+async def delete_student(
+    student_id: int,
+    token_data: dict = Depends(verify_token),
+    session: Session = Depends(get_session)
+):
+    """Delete a student from the system"""
+    # Verify user is professor or admin
+    user = session.get(User, token_data["user_id"])
+    if not user or user.role not in ["professor", "admin"]:
+        raise HTTPException(status_code=403, detail="Acesso negado. Apenas professores podem eliminar alunos.")
+    
+    # Get student
+    student = session.get(User, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Aluno não encontrado")
+    
+    if student.role != "user":
+        raise HTTPException(status_code=400, detail="Apenas utilizadores do tipo 'user' podem ser eliminados")
+    
+    # Delete student's analyses first (cascade)
+    from models.database import AnalysisResult
+    analyses = session.exec(select(AnalysisResult).where(AnalysisResult.user_id == student_id)).all()
+    for analysis in analyses:
+        session.delete(analysis)
+    
+    # Delete student
+    session.delete(student)
+    session.commit()
+    
+    return {"message": "Aluno eliminado com sucesso"}
+
+
 class StudentCreate(BaseModel):
     username: str
     password: str
@@ -286,3 +405,4 @@ async def create_student(
     session.commit()
     session.refresh(new_user)
     return new_user
+

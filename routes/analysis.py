@@ -125,7 +125,7 @@ async def final_evaluation(
         
         # Save to Database
         db_entry = AnalysisResult(
-            content=request.ai_analysis.analysis[:100] + "...", # Store snippet
+            content=request.original_content,  # Store original content
             ai_score=ai_score,
             user_score=user_score,
             discrepancy=discrepancy,
@@ -135,7 +135,10 @@ async def final_evaluation(
             student_name=token_data["username"],  # For backward compat display
             full_json_data=json.dumps({
                 "request": request.dict(),
-                "result": result_data
+                "result": result_data,
+                "content_type": request.content_type,  # Store content type
+                "user_perception": request.user_perception.dict(),
+                "ai_analysis": request.ai_analysis.dict()
             })
         )
         

@@ -7,9 +7,9 @@
       "es"
     ],
     "stats": {
-      "last_run": "2026-01-19T01:19:32.915411",
-      "last_count": 20,
-      "total_count": 91
+      "last_run": "2026-01-21T22:24:37.321932",
+      "last_count": 5,
+      "total_count": 96
     },
     "type": "GoogleFactCheckSource"
   },
@@ -19,7 +19,7 @@
       "pt"
     ],
     "stats": {
-      "last_run": "2026-01-19T01:19:50.898738",
+      "last_run": "2026-01-21T22:24:51.851278",
       "last_count": 0,
       "total_count": 0
     },
@@ -31,7 +31,7 @@
       "pt"
     ],
     "stats": {
-      "last_run": "2026-01-19T01:20:10.459403",
+      "last_run": "2026-01-21T22:24:59.722700",
       "last_count": 0,
       "total_count": 0
     },

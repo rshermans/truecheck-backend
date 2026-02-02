@@ -12,6 +12,8 @@ from routes.upload import router as upload_router
 from routes.news import router as news_router
 from routes.professor import router as professor_router
 from routes.student import router as student_router
+from routes.gamification import router as gamification_router
+from routes.config import router as config_router
 from database import create_db_and_tables
 
 # Create FastAPI application
@@ -36,16 +38,18 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Include routers
-app.include_router(analysis_router)
-app.include_router(history_router)
-app.include_router(stats_router)
 app.include_router(auth_router)
-app.include_router(admin_router)
-app.include_router(community_router)
+app.include_router(analysis_router)
 app.include_router(upload_router)
-app.include_router(news_router)
+app.include_router(admin_router)
+app.include_router(history_router)
+app.include_router(gamification_router)
+app.include_router(stats_router)
+app.include_router(config_router)
 app.include_router(professor_router)
 app.include_router(student_router)
+app.include_router(news_router)
+app.include_router(community_router)
 
 @app.on_event("startup")
 def on_startup():

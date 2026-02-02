@@ -3,6 +3,14 @@ from sqlmodel import Field, SQLModel, JSON, Relationship
 from datetime import datetime
 import json
 
+class SystemConfig(SQLModel, table=True):
+    """System configuration and feature flags"""
+    key: str = Field(primary_key=True)
+    value: str  # JSON string value
+    description: str
+    is_active: bool = True
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 class User(SQLModel, table=True):
     """User authentication model"""
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -23,6 +31,54 @@ class User(SQLModel, table=True):
     # Relationships
     analysis_results: List["AnalysisResult"] = Relationship(back_populates="user")
     materials: List["Material"] = Relationship(back_populates="author")
+    
+    # Classroom Relationships
+    classroom_id: Optional[int] = Field(default=None, foreign_key="classroom.id")
+    classroom: Optional["Classroom"] = Relationship(
+        back_populates="students", 
+        sa_relationship_kwargs={
+            "remote_side": "Classroom.id",
+            "primaryjoin": "User.classroom_id == Classroom.id",
+            "foreign_keys": "[User.classroom_id]"
+        }
+    )
+    
+    # For professors
+    managed_classrooms: List["Classroom"] = Relationship(
+        back_populates="professor",
+        sa_relationship_kwargs={
+            "primaryjoin": "User.id == Classroom.professor_id",
+            "foreign_keys": "[Classroom.professor_id]"
+        }
+    )
+
+class Classroom(SQLModel, table=True):
+    """Classroom management entity"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    school: str
+    description: Optional[str] = None
+    invite_code: str = Field(unique=True, index=True)
+    theme_color: str = Field(default="blue") # blue, green, purple, orange, pink, teal
+    professor_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = True
+    
+    # Relationships
+    professor: Optional[User] = Relationship(
+        back_populates="managed_classrooms",
+        sa_relationship_kwargs={
+            "primaryjoin": "Classroom.professor_id == User.id",
+            "foreign_keys": "[Classroom.professor_id]"
+        }
+    )
+    students: List[User] = Relationship(
+        back_populates="classroom",
+        sa_relationship_kwargs={
+            "primaryjoin": "Classroom.id == User.classroom_id",
+            "foreign_keys": "[User.classroom_id]"
+        }
+    )
 
 class Material(SQLModel, table=True):
     """Educational materials and resources"""

@@ -10,6 +10,9 @@ from models.database import User
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+from config import settings
+print(f"🔌 Connecting to database: {settings.DATABASE_URL.split('@')[-1] if '@' in settings.DATABASE_URL else settings.DATABASE_URL}")
+
 # Users to seed
 SEED_USERS = [
     {

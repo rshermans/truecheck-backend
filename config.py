@@ -28,7 +28,8 @@ class Settings:
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
-        FRONTEND_URL
+        FRONTEND_URL,
+        os.getenv("NETLIFY_URL", "")  # Netlify frontend URL
     ]
     
     # OpenAI Configuration

@@ -45,6 +45,8 @@ class FinalEvaluationRequest(BaseModel):
     user_perception: UserPerception
     ai_analysis: AIAnalysis
     student_name: Optional[str] = "Anônimo"
+    original_content: str = ""  # NEW: Original submitted content
+    content_type: str = "text"  # NEW: Type of content (text, url, image)
 
 # Response Models
 class CriterionDetail(BaseModel):
